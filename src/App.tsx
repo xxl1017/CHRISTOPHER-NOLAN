@@ -88,7 +88,7 @@ const DualText: React.FC<{ en: React.ReactNode; zh: React.ReactNode; className?:
 
 const archiveFilms = [
   { id: "following", title: { en: "FOLLOWING", zh: "追随" }, img: "https://images.unsplash.com/photo-1550684376-efcbd6e3f031?q=80&w=1000&auto=format&fit=crop&grayscale=true" },
-  { id: "memento", title: { en: "MEMENTO", zh: "记忆碎片" }, img: "https://images.unsplash.com/photo-1528696892704-5e1122832274?q=80&w=1000&auto=format&fit=crop&grayscale=true" },
+  { id: "memento", title: { en: "MEMENTO", zh: "记忆碎片" }, img: "/memento.jpg" },
   { id: "inception", title: { en: "INCEPTION", zh: "盗梦空间" }, img: "https://images.unsplash.com/photo-1449844908441-8829872d2607?q=80&w=1000&auto=format&fit=crop&grayscale=true" },
   { id: "interstellar", title: { en: "INTERSTELLAR", zh: "星际穿越" }, img: "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=1000&auto=format&fit=crop&grayscale=true" },
   { id: "tenet", title: { en: "TENET", zh: "信条" }, img: "https://images.unsplash.com/photo-1536697246787-1f27d3530fcd?q=80&w=1000&auto=format&fit=crop&grayscale=true" }
