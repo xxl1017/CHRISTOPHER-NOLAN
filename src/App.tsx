@@ -91,7 +91,7 @@ const archiveFilms = [
   { id: "memento", title: { en: "MEMENTO", zh: "记忆碎片" }, img: "/memento.jpg" },
   { id: "inception", title: { en: "INCEPTION", zh: "盗梦空间" }, img: "https://images.unsplash.com/photo-1449844908441-8829872d2607?q=80&w=1000&auto=format&fit=crop&grayscale=true" },
   { id: "interstellar", title: { en: "INTERSTELLAR", zh: "星际穿越" }, img: "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=1000&auto=format&fit=crop&grayscale=true" },
-  { id: "tenet", title: { en: "TENET", zh: "信条" }, img: "https://images.unsplash.com/photo-1536697246787-1f27d3530fcd?q=80&w=1000&auto=format&fit=crop&grayscale=true" }
+  { id: "tenet", title: { en: "TENET", zh: "信条" }, img: "/tenet.jpg" }
 ];
 
 function Home() {
@@ -456,7 +456,7 @@ const filmPagesData: Record<string, any> = {
   },
   tenet: {
     title: { en: "TENET", zh: "信条" },
-    heroSrc: "https://images.unsplash.com/photo-1536697246787-1f27d3530fcd?q=80&w=1600&auto=format&fit=crop&grayscale=true",
+    heroSrc: "/tenet.jpg",
     concept: { en: <>INVERSION /<br/>ENTROPY</>, zh: "逆转 / 熵" },
     note: { en: "Time inversion.", zh: "时间逆行" },
     structure: [
