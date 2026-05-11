@@ -1,6 +1,8 @@
 # Christopher Nolan Archive
 
-An experimental React portfolio that presents Christopher Nolan's films as a minimalist cinematic archive. The interface uses black-and-white imagery, typographic grids, subtle motion, and bilingual labels to explore themes of time, memory, inversion, and structure.
+An experimental React portfolio that presents Christopher Nolan's films as a minimalist cinematic archive. The interface uses black-and-white imagery, typographic grids, slow motion, and bilingual fragments to explore themes of time, memory, inversion, and structure.
+
+The goal is not to build a normal movie information site. The site should feel like entering a timeline system: slow, analytical, nonlinear, and cinematic.
 
 ## Tech Stack
 
@@ -33,6 +35,14 @@ src/
 - `/#/film/tenet`
 
 The app uses `HashRouter` so deep links work on static hosting without server-side rewrite rules.
+
+## Experience Notes
+
+- The landing page uses a partial, low-opacity Nolan portrait with film grain and a slow zoom.
+- The archive section behaves like a classified record browser: hovering a title changes the preview image and keyword field.
+- Film pages reveal information gradually through full-screen scroll sections instead of showing all details at once.
+- The Structure Lab is typography-only and treats film structure as an abstract visual system.
+- English is the primary analytical layer; Chinese is smaller, lighter, and more interpretive.
 
 ## Local Development
 
@@ -77,3 +87,4 @@ npm run clean
 - The app currently depends on several external media URLs from Unsplash and Suno, so a network connection is required for the complete visual and audio experience.
 - `public/memento.jpg` and `public/tenet.jpg` are local assets used by both archive cards and detail pages.
 - No Gemini API key or backend server is required.
+- The landing portrait uses a Wikimedia Commons image of Christopher Nolan by BrokenSphere under CC BY-SA 3.0.

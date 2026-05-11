@@ -3,490 +3,570 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
-import { HashRouter, Routes, Route, Link, useParams, useLocation } from 'react-router-dom';
+import React, {useEffect, useRef, useState} from 'react';
+import {AnimatePresence, motion} from 'motion/react';
+import {HashRouter, Link, Route, Routes, useLocation, useParams} from 'react-router-dom';
+
+type DualCopy = {
+  en: React.ReactNode;
+  zh: React.ReactNode;
+};
+
+type FilmRecord = {
+  id: string;
+  title: DualCopy;
+  year: string;
+  metadata: string[];
+  image: string;
+  keywords: string[];
+  concept: DualCopy;
+  structure: string[];
+  statement: DualCopy;
+  notes: DualCopy[];
+};
+
+const nolanPortrait =
+  'https://commons.wikimedia.org/wiki/Special:Redirect/file/Christopher%20Nolan%20at%20WonderCon%202010%203.JPG?width=1400';
+
+const films: FilmRecord[] = [
+  {
+    id: 'following',
+    title: {en: 'FOLLOWING', zh: '追随'},
+    year: '1998',
+    metadata: ['16MM', 'IDENTITY', 'SURVEILLANCE'],
+    image:
+      'https://images.unsplash.com/photo-1550684376-efcbd6e3f031?q=80&w=1600&auto=format&fit=crop&grayscale=true',
+    keywords: ['IDENTITY', 'OBSESSION', 'TRACE'],
+    concept: {en: 'IDENTITY / OBSESSION', zh: '身份在凝视中被拆解'},
+    structure: ['A MAN FOLLOWS', 'A PATTERN FORMS', 'THE PATTERN CONTROLS HIM'],
+    statement: {
+      en: 'Observation becomes possession.',
+      zh: '当观看持续太久，观看者也会被困在结构里。',
+    },
+    notes: [
+      {en: 'The city behaves like a maze.', zh: '空间不解释人物，只不断制造误认。'},
+      {en: 'Cause and effect arrive out of order.', zh: '真相像一份被打乱的调查记录。'},
+    ],
+  },
+  {
+    id: 'memento',
+    title: {en: 'MEMENTO', zh: '记忆碎片'},
+    year: '2000',
+    metadata: ['MEMORY', 'REVERSE TIME', 'IDENTITY'],
+    image: '/memento.jpg',
+    keywords: ['MEMORY', 'TIME', 'IDENTITY'],
+    concept: {en: 'MEMORY / REVERSE TIME', zh: '意识被剪成无法复原的证词'},
+    structure: ['← ← ← ← ←', '→ → → → →'],
+    statement: {
+      en: 'Memory is unreliable.',
+      zh: '记忆会被不断重构。',
+    },
+    notes: [
+      {en: 'The ending is placed at the beginning.', zh: '答案先抵达，意义却迟迟无法出现。'},
+      {en: 'Every clue is also a trap.', zh: '证据越清晰，自我越不可信。'},
+    ],
+  },
+  {
+    id: 'inception',
+    title: {en: 'INCEPTION', zh: '盗梦空间'},
+    year: '2010',
+    metadata: ['DREAM', 'LAYER', 'TIME DILATION'],
+    image:
+      'https://images.unsplash.com/photo-1449844908441-8829872d2607?q=80&w=1600&auto=format&fit=crop&grayscale=true',
+    keywords: ['DREAM', 'LAYER', 'KICK'],
+    concept: {en: 'DREAM WITHIN DREAM', zh: '层层嵌套的意识迷宫'},
+    structure: ['LEVEL 01', '  LEVEL 02', '    LEVEL 03', '      LIMBO'],
+    statement: {
+      en: 'Reality is negotiated through architecture.',
+      zh: '真实不是答案，而是一套暂时稳定的空间规则。',
+    },
+    notes: [
+      {en: 'Each layer slows the pulse.', zh: '越往深处，时间越像一间封闭房间。'},
+      {en: 'The image becomes evidence.', zh: '视觉不是装饰，而是判断现实的工具。'},
+    ],
+  },
+  {
+    id: 'interstellar',
+    title: {en: 'INTERSTELLAR', zh: '星际穿越'},
+    year: '2014',
+    metadata: ['GRAVITY', 'DISTANCE', 'RELATIVITY'],
+    image:
+      'https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=1600&auto=format&fit=crop&grayscale=true',
+    keywords: ['TIME', 'GRAVITY', 'LOVE'],
+    concept: {en: 'TIME = GRAVITY', zh: '时间被重力弯折成情感的距离'},
+    structure: ['EARTH', 'ORBIT', 'BLACK HOLE', 'BOOKSHELF'],
+    statement: {
+      en: 'Time is the real antagonist.',
+      zh: '真正的阻隔不是宇宙，而是无法同步的时间。',
+    },
+    notes: [
+      {en: 'Scale turns intimate.', zh: '宏大的天体运动最终落回一间卧室。'},
+      {en: 'Distance becomes a measurement of grief.', zh: '离别被翻译成物理学，也仍然疼痛。'},
+    ],
+  },
+  {
+    id: 'tenet',
+    title: {en: 'TENET', zh: '信条'},
+    year: '2020',
+    metadata: ['INVERSION', 'ENTROPY', 'PALINDROME'],
+    image: '/tenet.jpg',
+    keywords: ['INVERSION', 'ENTROPY', 'CONTROL'],
+    concept: {en: 'INVERSION / ENTROPY', zh: '因果被折叠成互相追逐的轨道'},
+    structure: ['→ → → → →', '← ← ← ← ←'],
+    statement: {
+      en: 'The future has already happened.',
+      zh: '未来不是等待，而是正在反向接近。',
+    },
+    notes: [
+      {en: 'Movement contradicts perception.', zh: '身体向前，世界却像在倒放。'},
+      {en: 'The plot behaves like a machine.', zh: '情节不解释自己，只让你进入运转。'},
+    ],
+  },
+];
+
+const filmMap = films.reduce<Record<string, FilmRecord>>((map, film) => {
+  map[film.id] = film;
+  return map;
+}, {});
 
 function AudioPlayer() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  useEffect(() => {
-    const playAudio = () => {
-      if (audioRef.current && audioRef.current.paused) {
-        audioRef.current.play()
-          .then(() => setIsPlaying(true))
-          .catch(e => console.log("Autoplay blocked:", e));
-      }
-    };
-    
-    // Attempt play on any interaction
-    window.addEventListener('click', playAudio);
-    window.addEventListener('scroll', playAudio);
-    window.addEventListener('keydown', playAudio);
-    
-    // Initial attempt
-    playAudio();
-    
-    return () => {
-      window.removeEventListener('click', playAudio);
-      window.removeEventListener('scroll', playAudio);
-      window.removeEventListener('keydown', playAudio);
-    };
-  }, []);
-
   return (
     <>
-      <audio 
-        ref={audioRef} 
-        loop 
-        src="https://cdn1.suno.ai/ed3573c5-bf5d-4ab9-8f59-2f7065eca900.mp3" 
-        crossOrigin="anonymous" 
+      <audio
+        ref={audioRef}
+        loop
+        src="https://cdn1.suno.ai/ed3573c5-bf5d-4ab9-8f59-2f7065eca900.mp3"
+        crossOrigin="anonymous"
       />
-      <div 
-        className="fixed bottom-12 right-8 md:right-[60px] z-50 flex items-center gap-4 cursor-pointer group"
+      <button
+        type="button"
+        className="fixed bottom-8 right-6 z-50 font-mono text-[10px] uppercase tracking-[0.28em] text-black/45 transition-colors hover:text-black md:bottom-12 md:right-12"
         onClick={() => {
-          if (audioRef.current) {
-            if (isPlaying) {
-              audioRef.current.pause();
-              setIsPlaying(false);
-            } else {
-              audioRef.current.play()
-                .then(() => setIsPlaying(true))
-                .catch(console.error);
-            }
+          if (!audioRef.current) return;
+          if (isPlaying) {
+            audioRef.current.pause();
+            setIsPlaying(false);
+            return;
           }
+
+          audioRef.current
+            .play()
+            .then(() => setIsPlaying(true))
+            .catch(() => setIsPlaying(false));
         }}
       >
-        <span className="font-mono text-[10px] tracking-[0.2em] uppercase text-black/50 group-hover:text-black transition-colors">
-          {isPlaying ? "[ AUDIO ON ]" : "[ AUDIO OFF ]"}
-        </span>
-      </div>
+        {isPlaying ? '[ AUDIO ON ]' : '[ AUDIO OFF ]'}
+      </button>
     </>
   );
 }
 
-const FadeIn: React.FC<{ children: React.ReactNode; delay?: number; className?: string }> = ({ children, delay = 0, className = "" }) => (
-
+const PageFade: React.FC<{children: React.ReactNode; className?: string}> = ({children, className = ''}) => (
   <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true, margin: "-10%" }}
-    transition={{ duration: 0.6, delay, ease: [0.16, 1, 0.3, 1] }}
+    initial={{opacity: 0}}
+    animate={{opacity: 1}}
+    exit={{opacity: 0}}
+    transition={{duration: 0.8, ease: [0.16, 1, 0.3, 1]}}
     className={className}
   >
     {children}
   </motion.div>
 );
 
-const DualText: React.FC<{ en: React.ReactNode; zh: React.ReactNode; className?: string; enClassName?: string; zhClassName?: string; gap?: string }> = ({ en, zh, className = "", enClassName="opacity-100", zhClassName="font-light opacity-60 text-[0.85em] tracking-normal normal-case", gap="gap-1" }) => (
-  <div className={`flex flex-col ${gap} ${className}`}>
-    <span className={`font-medium ${enClassName}`}>{en}</span>
-    <span className={zhClassName}>{zh}</span>
+const Reveal: React.FC<{children: React.ReactNode; delay?: number; className?: string}> = ({
+  children,
+  delay = 0,
+  className = '',
+}) => (
+  <motion.div
+    initial={{opacity: 0, y: 36}}
+    whileInView={{opacity: 1, y: 0}}
+    viewport={{once: true, margin: '-18%'}}
+    transition={{duration: 1.1, delay, ease: [0.16, 1, 0.3, 1]}}
+    className={className}
+  >
+    {children}
+  </motion.div>
+);
+
+const DualText: React.FC<{
+  en: React.ReactNode;
+  zh: React.ReactNode;
+  className?: string;
+  enClassName?: string;
+  zhClassName?: string;
+}> = ({en, zh, className = '', enClassName = '', zhClassName = ''}) => (
+  <div className={`flex flex-col gap-3 ${className}`}>
+    <span className={enClassName}>{en}</span>
+    <span className={`font-zh font-light text-black/45 ${zhClassName}`}>{zh}</span>
   </div>
 );
 
-const archiveFilms = [
-  { id: "following", title: { en: "FOLLOWING", zh: "追随" }, img: "https://images.unsplash.com/photo-1550684376-efcbd6e3f031?q=80&w=1000&auto=format&fit=crop&grayscale=true" },
-  { id: "memento", title: { en: "MEMENTO", zh: "记忆碎片" }, img: "/memento.jpg" },
-  { id: "inception", title: { en: "INCEPTION", zh: "盗梦空间" }, img: "https://images.unsplash.com/photo-1449844908441-8829872d2607?q=80&w=1000&auto=format&fit=crop&grayscale=true" },
-  { id: "interstellar", title: { en: "INTERSTELLAR", zh: "星际穿越" }, img: "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=1000&auto=format&fit=crop&grayscale=true" },
-  { id: "tenet", title: { en: "TENET", zh: "信条" }, img: "/tenet.jpg" }
-];
-
 function Home() {
-  const [activeFilm, setActiveFilm] = useState(archiveFilms[2]);
-  
+  const [activeFilm, setActiveFilm] = useState<FilmRecord>(films[1]);
+
   return (
-    <div className="w-full text-black selection:bg-black selection:text-white font-sans pb-32 bg-grid min-h-screen relative overflow-hidden">
-      
-      {/* Decorative Structural Lines & Labels */}
-      <div className="fixed top-0 bottom-0 left-[120px] w-[1px] bg-black opacity-5 pointer-events-none z-0 hidden md:block"></div>
-      <div className="fixed left-0 right-0 top-[80px] h-[1px] bg-black opacity-5 pointer-events-none z-0 hidden md:block"></div>
-      <div className="fixed left-[40px] top-[40px] bottom-[40px] hidden lg:flex flex-col justify-between font-mono text-[10px] uppercase tracking-[0.2em] z-50 pointer-events-none text-black">
-        <div>01 / INDEX</div>
-        <div style={{ writingMode: 'vertical-rl' }} className="rotate-180">CN ARCHIVE — 2024</div>
-        <div style={{ opacity: 0 }}>_</div>
+    <PageFade className="relative min-h-screen overflow-hidden bg-white text-black selection:bg-black selection:text-white">
+      <div className="fixed inset-0 pointer-events-none bg-grid opacity-70" />
+      <div className="fixed inset-0 pointer-events-none grain-overlay" />
+      <div className="fixed left-6 top-6 z-40 hidden font-mono text-[10px] uppercase tracking-[0.32em] text-black/45 md:block">
+        CN / ARCHIVE SYSTEM
       </div>
-      <header className="fixed top-[40px] right-[60px] font-mono text-[10px] tracking-[0.2em] text-black z-50 hidden md:block pointer-events-none">
-        EST. 1970 / LONDON, UK
-      </header>
+      <div className="fixed right-6 top-6 z-40 hidden font-mono text-[10px] uppercase tracking-[0.32em] text-black/45 md:block">
+        1970 / LONDON
+      </div>
 
-      {/* LANDING */}
-      <section className="min-h-screen flex flex-col justify-center items-start px-8 md:px-[165px] relative z-10 w-full">
-        {/* Background Overlay */}
-        <div className="absolute inset-0 z-[-1] overflow-hidden pointer-events-none">
-          <motion.img 
-            src="https://images.unsplash.com/photo-1541086088365-1d6cfb33568c?q=80&w=1600&auto=format&fit=crop&grayscale=true" 
-            alt="Background" 
-            className="absolute top-0 left-0 w-full h-full object-cover grayscale contrast-110 opacity-[0.2]"
-            initial={{ scale: 1 }}
-            animate={{ scale: 1.05 }}
-            transition={{ duration: 10, ease: "linear", repeat: Infinity, repeatType: "mirror" }}
+      <section className="relative min-h-screen overflow-hidden px-6 pb-20 pt-24 md:px-20 lg:px-32">
+        <div className="absolute bottom-0 right-[-14vw] top-0 w-[68vw] overflow-hidden opacity-20 md:opacity-[0.18]">
+          <motion.img
+            src={nolanPortrait}
+            alt="Christopher Nolan"
+            className="h-full w-full object-cover object-[42%_50%] grayscale blur-[0.7px] contrast-75"
+            initial={{scale: 1.04, x: 0}}
+            animate={{scale: 1.16, x: -18}}
+            transition={{duration: 24, repeat: Infinity, repeatType: 'mirror', ease: 'linear'}}
           />
-          <div className="absolute inset-0 grain-overlay"></div>
+          <div className="absolute inset-0 bg-white/20" />
         </div>
 
-        <FadeIn delay={0.1}>
-          <DualText 
-            en="CHRISTOPHER NOLAN"
-            zh="克里斯托弗·诺兰" 
-            enClassName="text-6xl md:text-[110px] font-black leading-[0.85] tracking-[-0.04em] uppercase"
-            zhClassName="text-2xl md:text-[40px] font-light opacity-60 tracking-normal mt-4 md:mt-8 block"
-            gap="gap-0"
-            className="mb-[20px] max-w-[600px]"
-          />
-        </FadeIn>
-        <FadeIn delay={0.3} className="ml-0">
-          <DualText
-            en="TIME IS NOT LINEAR"
-            zh="时间并非线性"
-            enClassName="text-[12px] font-mono tracking-[0.1em] text-[#888888] uppercase"
-            zhClassName="text-[14px] font-light opacity-60 mt-1"
-            className="max-w-[400px]"
-          />
-        </FadeIn>
-        
-        <motion.div 
-          animate={{ y: [0, 10, 0] }} 
-          transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
-          className="absolute bottom-12 left-8 md:left-[165px] font-mono text-[10px] text-black tracking-[0.2em] uppercase font-bold"
-        >
-          ↓ SCROLL TO ENTER / 向下进入系统
-        </motion.div>
-      </section>
-
-      {/* PROFILE */}
-      <section className="min-h-screen flex flex-col items-start px-8 md:px-[165px] py-32 relative z-10 w-full border-t border-black/10">
-        <FadeIn className="w-full mb-16">
-          <DualText
-            en="02 / PROFILE"
-            zh="人物层"
-            enClassName="text-[10px] font-mono text-[#888888] tracking-[0.2em] uppercase"
-            zhClassName="text-[10px] font-light opacity-60 tracking-normal mt-1"
-          />
-        </FadeIn>
-        <div className="flex flex-col md:flex-row items-start justify-between w-full gap-16 md:gap-32">
-          <FadeIn className="w-full md:w-1/2 flex justify-center md:justify-start">
-            <div className="relative group overflow-hidden w-full max-w-[400px] aspect-[3/4]">
-              <img 
-                src="https://images.unsplash.com/photo-1536440136628-849c177e76a1?q=80&w=600&auto=format&fit=crop&grayscale=true" 
-                alt="Christopher Nolan" 
-                className="w-full h-full object-cover grayscale transition-transform duration-700 group-hover:scale-105"
-                loading="lazy"
-              />
-              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-end p-6">
-                <span className="text-white font-mono text-[10px] tracking-[0.2em] uppercase">Christopher Nolan</span>
-              </div>
-            </div>
-          </FadeIn>
-          <FadeIn delay={0.2} className="w-full md:w-1/2">
-            <div className="flex flex-col font-mono text-[12px] md:text-[14px] leading-[2] tracking-[0.2em] uppercase text-black mb-16">
-               <p>CHRISTOPHER NOLAN</p>
-               <p className="h-6"></p>
-               <p>FILMMAKER</p>
-               <p>DIRECTOR</p>
-               <p>WRITER</p>
-               <p className="h-6"></p>
-               <p>1970 —</p>
-               <p className="h-6"></p>
-               <p className="normal-case font-sans tracking-normal text-[14px] text-[#888]">Works between structure and perception.</p>
-            </div>
-            
-            <div className="text-[14px] md:text-[16px] font-normal tracking-wide leading-[1.8] max-w-[500px]">
-              {[
-                {en: "Christopher Nolan is a filmmaker", zh: "诺兰是一位电影导演"},
-                {en: "whose work constructs systems of time.", zh: "其作品构建时间的系统"},
-                {en: "", zh: ""},
-                {en: "But more importantly —", zh: "但更重要的是 —"},
-                {en: "his films reject linear perception.", zh: "他的电影拒绝线性叙事"},
-                {en: "", zh: ""},
-                {en: "They operate as structures.", zh: "它们以结构运作"},
-                {en: "Not stories.", zh: "而非单纯故事"}
-              ].map((frag, i) => (
-                frag.en === "" ? (
-                  <div key={i} className="h-4" />
-                ) : (
-                  <DualText
-                    key={i}
-                    en={frag.en}
-                    zh={frag.zh}
-                    enClassName="font-medium"
-                    zhClassName="font-light opacity-60 text-[0.85em] mt-1 mb-2 block"
-                    gap="gap-0"
-                  />
-                )
-              ))}
-            </div>
-          </FadeIn>
+        <div className="relative z-10 flex min-h-[calc(100vh-11rem)] max-w-[980px] flex-col justify-end">
+          <Reveal>
+            <DualText
+              en="CHRISTOPHER NOLAN"
+              zh="克里斯托弗·诺兰"
+              enClassName="text-[52px] font-black uppercase leading-[0.9] tracking-[0.06em] md:text-[118px]"
+              zhClassName="text-[22px] tracking-[0.24em] md:text-[34px]"
+            />
+          </Reveal>
+          <Reveal delay={0.24} className="mt-16">
+            <DualText
+              en="TIME IS NOT LINEAR"
+              zh="时间并非线性"
+              enClassName="font-mono text-[12px] uppercase tracking-[0.36em] text-black/55"
+              zhClassName="text-[13px] tracking-[0.22em]"
+            />
+          </Reveal>
+          <Reveal delay={0.48} className="mt-28">
+            <DualText
+              en="SCROLL TO ENTER"
+              zh="向下进入系统"
+              enClassName="font-mono text-[10px] uppercase tracking-[0.4em]"
+              zhClassName="text-[12px] tracking-[0.24em]"
+            />
+          </Reveal>
         </div>
       </section>
 
-      {/* ARCHIVE */}
-      <section className="py-32 relative z-10 w-full min-h-[80vh] flex flex-col justify-center border-t border-black/10 px-8 md:px-[165px]">
-        <FadeIn>
+      <section className="relative min-h-screen px-6 py-32 md:px-20 lg:px-32">
+        <div className="pointer-events-none absolute inset-x-0 top-20 overflow-hidden">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeFilm.id}
+              initial={{opacity: 0, y: 20}}
+              animate={{opacity: 1, y: 0}}
+              exit={{opacity: 0, y: -20}}
+              transition={{duration: 0.8}}
+              className="font-mono text-[56px] uppercase leading-none tracking-[0.22em] text-black/[0.035] md:text-[120px]"
+            >
+              {activeFilm.keywords.join(' / ')}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        <Reveal>
           <DualText
-            en="03 / ARCHIVE"
-            zh="入口"
-            enClassName="text-[10px] font-mono text-[#888888] tracking-[0.2em] uppercase"
-            zhClassName="text-[10px] font-light opacity-60 tracking-normal mt-1"
-            className="mb-16"
+            en="01 / ARCHIVE"
+            zh="机密影像记录"
+            enClassName="font-mono text-[10px] uppercase tracking-[0.36em] text-[#888888]"
+            zhClassName="text-[11px] tracking-[0.2em]"
           />
-        </FadeIn>
-        <div className="flex flex-col md:flex-row w-full gap-16 md:gap-32 items-center">
-          <div className="w-full md:w-1/2 flex flex-col justify-center space-y-6 md:space-y-10 relative z-20">
-            {archiveFilms.map((film, idx) => (
-              <FadeIn key={film.id} delay={idx * 0.05}>
-                <div 
-                  onMouseEnter={() => setActiveFilm(film)}
-                  className="group cursor-pointer block w-max"
-                >
-                  <Link to={`/film/${film.id}`}>
-                    <div className="flex items-center transition-transform duration-500 group-hover:translate-x-4">
-                      <span className="font-mono text-[10px] text-[#888] mr-4 opacity-0 group-hover:opacity-100 transition-opacity">{"//"}</span>
-                      <DualText 
-                        en={film.title.en} 
-                        zh={film.title.zh} 
-                        enClassName={`text-3xl md:text-5xl font-bold tracking-[0.05em] uppercase transition-colors duration-500 ${activeFilm.id === film.id ? 'text-black' : 'text-black/30 group-hover:text-black/80'}`}
-                        zhClassName={`text-sm font-light transition-opacity duration-500 mt-2 block ${activeFilm.id === film.id ? 'opacity-80' : 'opacity-0 group-hover:opacity-60'}`}
-                      />
+        </Reveal>
+
+        <div className="relative z-10 mt-28 grid gap-20 md:grid-cols-[minmax(0,0.95fr)_minmax(320px,0.75fr)] md:items-center">
+          <div className="space-y-10 md:space-y-14">
+            {films.map((film, index) => {
+              const isActive = activeFilm.id === film.id;
+              return (
+                <Reveal key={film.id} delay={index * 0.04}>
+                  <Link
+                    to={`/film/${film.id}`}
+                    onMouseEnter={() => setActiveFilm(film)}
+                    onFocus={() => setActiveFilm(film)}
+                    className={`group block transition-all duration-700 ${
+                      isActive ? 'translate-x-3 opacity-100' : 'opacity-35 hover:opacity-80'
+                    }`}
+                  >
+                    <div className="flex items-start gap-6">
+                      <span className="pt-2 font-mono text-[10px] tracking-[0.34em] text-[#888888]">
+                        {String(index + 1).padStart(2, '0')}
+                      </span>
+                      <div>
+                        <DualText
+                          en={film.title.en}
+                          zh={film.title.zh}
+                          enClassName="text-[32px] font-black uppercase tracking-[0.12em] md:text-[58px]"
+                          zhClassName="text-[14px] tracking-[0.24em] md:text-[16px]"
+                        />
+                        <div
+                          className={`mt-7 flex flex-wrap gap-x-7 gap-y-3 font-mono text-[10px] uppercase tracking-[0.32em] text-black/45 transition-opacity duration-500 ${
+                            isActive ? 'opacity-100' : 'opacity-0'
+                          }`}
+                        >
+                          {film.keywords.map((keyword) => (
+                            <span key={keyword}>{keyword}</span>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </Link>
-                </div>
-              </FadeIn>
-            ))}
+                </Reveal>
+              );
+            })}
           </div>
-          <FadeIn className="w-full md:w-1/2 relative aspect-[4/5] md:aspect-auto md:min-h-[60vh] overflow-hidden bg-black/5">
+
+          <Reveal className="relative aspect-[4/5] overflow-hidden bg-black/[0.03]">
             <AnimatePresence mode="wait">
               <motion.img
                 key={activeFilm.id}
-                src={activeFilm.img}
-                initial={{ opacity: 0, scale: 1 }}
-                animate={{ opacity: 1, scale: 1.05 }}
-                exit={{ opacity: 0, scale: 1 }}
-                transition={{ duration: 0.6, ease: "easeInOut" }}
-                className="absolute inset-0 w-full h-full object-cover grayscale mix-blend-multiply opacity-80"
+                src={activeFilm.image}
+                alt={`${activeFilm.title.en} archive preview`}
+                className="cinematic-image absolute inset-0 h-full w-full object-cover"
+                initial={{opacity: 0, scale: 1.03, x: 16}}
+                animate={{opacity: 0.82, scale: 1.09, x: 0}}
+                exit={{opacity: 0, scale: 1.02, x: -16}}
+                transition={{duration: 0.9, ease: [0.16, 1, 0.3, 1]}}
               />
             </AnimatePresence>
-          </FadeIn>
-        </div>
-      </section>
-
-      {/* STRUCTURE LAB */}
-      <section className="min-h-screen py-32 flex flex-col justify-center relative z-10 max-w-[800px] border-t border-black/10 mx-8 md:mx-[165px]">
-        <div className="mb-32">
-          <FadeIn>
-            <DualText
-              en="05 / STRUCTURE LAB"
-              zh="设计亮点"
-              enClassName="text-[10px] font-mono text-[#888888] tracking-[0.2em] uppercase"
-              zhClassName="text-[10px] font-light opacity-60 tracking-normal mt-1"
-            />
-          </FadeIn>
-        </div>
-
-        <div className="space-y-32">
-          {/* Tenet Layout */}
-          <FadeIn>
-            <div className="flex flex-col items-start border-t border-black/20 pb-8 pt-4">
-              <h4 className="text-[10px] font-mono text-[#888] tracking-[0.2em] mb-12">TENET (BIDIRECTIONAL)</h4>
-              <div className="space-y-4 font-mono text-[14px] md:text-[20px] tracking-[0.2em]">
-                <div className="text-black transition-transform duration-700 hover:translate-x-4">{"→ → → → →"}</div>
-                <div className="text-[#888888] transition-transform duration-700 hover:-translate-x-4">{"← ← ← ← ←"}</div>
-              </div>
+            <div className="absolute inset-0 grain-overlay" />
+            <div className="absolute bottom-8 left-8 font-mono text-[10px] uppercase tracking-[0.32em] text-white/70 mix-blend-difference">
+              {activeFilm.year} / {activeFilm.metadata[0]}
             </div>
-          </FadeIn>
-
-          {/* Dunkirk Layout */}
-          <FadeIn>
-            <div className="flex flex-col items-start border-t border-black/20 pb-8 pt-4">
-              <h4 className="text-[10px] font-mono text-[#888] tracking-[0.2em] mb-12">DUNKIRK (MULTI-SCALE)</h4>
-              <div className="flex flex-col space-y-4 items-start font-mono tracking-[0.2em] text-[14px] md:text-[20px]">
-                <motion.div whileHover={{ x: 10 }} className="text-black cursor-crosshair">LAND — 1 WEEK</motion.div>
-                <motion.div whileHover={{ x: 10 }} className="text-[#888888] cursor-crosshair">SEA — 1 DAY</motion.div>
-                <motion.div whileHover={{ x: 10 }} className="text-black/20 cursor-crosshair">AIR — 1 HOUR</motion.div>
-              </div>
-            </div>
-          </FadeIn>
+          </Reveal>
         </div>
       </section>
 
-      {/* ABOUT PROJECT */}
-      <section className="py-32 px-8 md:px-[165px] border-t border-black/10 relative z-10 w-full max-w-[1200px]">
-        <FadeIn className="w-full mb-16">
-          <DualText
-            en="06 / ABOUT PROJECT"
-            zh="作品说明"
-            enClassName="text-[10px] font-mono text-[#888888] tracking-[0.2em] uppercase"
-            zhClassName="text-[10px] font-light opacity-60 tracking-normal mt-1"
-          />
-        </FadeIn>
-        <FadeIn delay={0.1}>
-           <div className="grid grid-cols-1 md:grid-cols-2 gap-16 md:gap-24 uppercase">
-              <div className="font-mono text-[12px] leading-[2] tracking-[0.1em] text-black max-w-[400px]">
-                 <p className="mb-8 text-[#888]">DESIGN NOTES</p>
-                 <p>This project explores cinematic structures through visual interface design. Time progression, cinematic fades, and subtle feedback mechanisms are used to reflect Christopher Nolan's nonlinear storytelling.</p>
-              </div>
-              <div className="font-mono text-[12px] leading-[2] tracking-[0.1em] text-black">
-                 <p className="mb-8 text-[#888]">TECHNICAL</p>
-                 <p>Built with React, Tailwind CSS, and Motion.</p>
-                 <p className="mt-16 text-[#888] border-b border-[#888]/30 pb-1 inline-block hover:text-black hover:border-black transition-colors cursor-pointer">// END OF ARCHIVE</p>
-              </div>
-           </div>
-        </FadeIn>
-      </section>
-    </div>
+      <StructureLab />
+      <ProjectStatement />
+    </PageFade>
   );
 }
 
-const filmPagesData: Record<string, any> = {
-  inception: {
-    title: { en: "INCEPTION", zh: "盗梦空间" },
-    heroSrc: "https://images.unsplash.com/photo-1449844908441-8829872d2607?q=80&w=1600&auto=format&fit=crop&grayscale=true",
-    concept: { en: <>DREAM / LAYER /<br/>TIME</>, zh: "梦境 / 层级 / 时间" },
-    note: { en: "Dream within dream.", zh: "梦中之梦" },
-    structure: [
-      { en: "LEVEL 1", style: "text-black", num: "01" },
-      { en: "LEVEL 2", style: "text-[#666] ml-4", num: "02" },
-      { en: "LEVEL 3", style: "text-[#aaa] ml-8", num: "03" },
-      { en: "LIMBO", style: "text-black/20 ml-12", num: "04" }
-    ]
-  },
-  following: {
-    title: { en: "FOLLOWING", zh: "追随" },
-    heroSrc: "https://images.unsplash.com/photo-1550684376-efcbd6e3f031?q=80&w=1600&auto=format&fit=crop&grayscale=true",
-    concept: { en: <>IDENTITY /<br/>OBSESSION</>, zh: "身份 / 执念" },
-    note: { en: "A man follows strangers to construct meaning.", zh: "一个男人通过跟踪他人来构建意义" },
-    structure: null
-  },
-  memento: {
-    title: { en: "MEMENTO", zh: "记忆碎片" },
-    heroSrc: "/memento.jpg",
-    concept: { en: <>MEMORY /<br/>REVERSE TIME</>, zh: "记忆 / 逆向时间" },
-    note: { en: "Memory is unreliable.", zh: "记忆是不可靠的" },
-    structure: [
-      { en: "← ← ← ← ←", style: "text-[#888]", num: "01" },
-      { en: "→ → → → →", style: "text-black ml-4", num: "02" }
-    ]
-  },
-  interstellar: {
-    title: { en: "INTERSTELLAR", zh: "星际穿越" },
-    heroSrc: "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?q=80&w=1600&auto=format&fit=crop&grayscale=true",
-    concept: { en: <>TIME / GRAVITY /<br/>LOVE</>, zh: "时间 / 重力 / 爱" },
-    note: { en: "Time is relative. Love transcends dimensions.", zh: "时间是相对的。爱超越维度。" },
-    structure: null
-  },
-  tenet: {
-    title: { en: "TENET", zh: "信条" },
-    heroSrc: "/tenet.jpg",
-    concept: { en: <>INVERSION /<br/>ENTROPY</>, zh: "逆转 / 熵" },
-    note: { en: "Time inversion.", zh: "时间逆行" },
-    structure: [
-      { en: "→ → → → →", style: "text-black", num: "01" },
-      { en: "← ← ← ← ←", style: "text-[#888] ml-4", num: "02" }
-    ]
-  }
-};
+function StructureLab() {
+  return (
+    <section className="relative min-h-screen px-6 py-36 md:px-20 lg:px-32">
+      <Reveal>
+        <DualText
+          en="02 / STRUCTURE LAB"
+          zh="结构实验室"
+          enClassName="font-mono text-[10px] uppercase tracking-[0.36em] text-[#888888]"
+          zhClassName="text-[11px] tracking-[0.2em]"
+        />
+      </Reveal>
+
+      <div className="mt-32 max-w-[760px] space-y-32 font-mono uppercase tracking-[0.28em]">
+        <Reveal>
+          <div className="border-t border-black/15 pt-10">
+            <p className="mb-10 text-[12px] text-[#888888]">TENET</p>
+            <p className="text-[22px] leading-[2] md:text-[34px]">→ → → → →</p>
+            <p className="text-[22px] leading-[2] text-black/45 md:text-[34px]">← ← ← ← ←</p>
+          </div>
+        </Reveal>
+
+        <Reveal>
+          <div className="border-t border-black/15 pt-10">
+            <p className="mb-10 text-[12px] text-[#888888]">DUNKIRK</p>
+            <div className="space-y-5 text-[18px] md:text-[26px]">
+              <p>1 WEEK</p>
+              <p className="text-black/55">1 DAY</p>
+              <p className="text-black/25">1 HOUR</p>
+            </div>
+          </div>
+        </Reveal>
+
+        <Reveal>
+          <div className="border-t border-black/15 pt-10">
+            <p className="mb-10 text-[12px] text-[#888888]">INTERSTELLAR</p>
+            <p className="text-[22px] leading-[1.7] md:text-[34px]">TIME = GRAVITY</p>
+          </div>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+function ProjectStatement() {
+  return (
+    <section className="relative flex min-h-screen items-center px-6 py-36 md:px-20 lg:px-32">
+      <Reveal className="max-w-[780px]">
+        <DualText
+          en="03 / PROJECT"
+          zh="项目说明"
+          enClassName="mb-24 font-mono text-[10px] uppercase tracking-[0.36em] text-[#888888]"
+          zhClassName="hidden"
+        />
+        <div className="space-y-12">
+          {[
+            {
+              en: 'This project explores how cinematic structure can become digital interaction.',
+              zh: '电影结构在这里不再只是内容，而成为浏览方式本身。',
+            },
+            {en: 'Scroll becomes time.', zh: '滚动成为时间。'},
+            {en: 'Layout becomes narrative.', zh: '版式成为叙事。'},
+            {en: 'Interaction becomes perception.', zh: '交互成为感知。'},
+          ].map((line) => (
+            <DualText
+              key={String(line.en)}
+              en={line.en}
+              zh={line.zh}
+              enClassName="max-w-[720px] text-[28px] font-medium leading-[1.25] tracking-[0.04em] md:text-[48px]"
+              zhClassName="max-w-[520px] text-[15px] leading-[1.9] tracking-[0.18em]"
+            />
+          ))}
+        </div>
+      </Reveal>
+    </section>
+  );
+}
 
 const FilmPage = () => {
-  const { title } = useParams<{ title: string }>();
-  const { pathname } = useLocation();
+  const {title} = useParams<{title: string}>();
+  const {pathname} = useLocation();
+  const data = title ? filmMap[title] : null;
 
-  const data = title ? filmPagesData[title] : null;
+  useEffect(() => {
+    window.scrollTo({top: 0, behavior: 'auto'});
+  }, [pathname]);
 
   if (!data) {
     return (
-      <div className="min-h-screen flex items-center justify-center font-mono text-[10px] tracking-[0.2em] text-[#888] bg-grid">
-        <Link to="/" className="hover:text-black transition-colors border-b border-[#888] pb-1">← RETURN TO ARCHIVE</Link>
-      </div>
+      <PageFade className="flex min-h-screen items-center justify-center bg-white font-mono text-[10px] uppercase tracking-[0.36em] text-[#888888]">
+        <Link to="/" className="border-b border-black/20 pb-2 transition-colors hover:text-black">
+          ← RETURN TO ARCHIVE
+        </Link>
+      </PageFade>
     );
   }
 
   return (
-    <motion.div key={pathname}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 1 }}
-      className="w-full text-black selection:bg-black selection:text-white font-sans bg-grid min-h-screen relative overflow-x-hidden"
-    >
-      {/* Decorative Label */}
-      <div className="fixed top-0 bottom-0 left-[120px] w-[1px] bg-black opacity-5 pointer-events-none z-0 hidden md:block"></div>
-      <div className="fixed left-0 right-0 top-[80px] h-[1px] bg-black opacity-5 pointer-events-none z-0 hidden md:block"></div>
-      
-      <div className="fixed top-[40px] left-[40px] z-50">
-        <Link to="/" className="font-mono text-[10px] tracking-[0.4em] uppercase hover:text-[#888] transition-colors border-b border-black/10 pb-1">
-          ← BACK
-        </Link>
-      </div>
+    <PageFade className="relative min-h-screen overflow-hidden bg-white text-black selection:bg-black selection:text-white">
+      <div className="fixed inset-0 pointer-events-none bg-grid opacity-70" />
+      <div className="fixed inset-0 pointer-events-none grain-overlay" />
+      <Link
+        to="/"
+        className="fixed left-6 top-6 z-50 font-mono text-[10px] uppercase tracking-[0.36em] text-black/55 transition-colors hover:text-black md:left-10 md:top-10"
+      >
+        ← BACK
+      </Link>
 
-      <section className="min-h-screen flex flex-col justify-center px-8 md:px-[165px] pt-32 relative z-10 w-full max-w-[1200px]">
-        <FadeIn>
+      <section className="relative flex min-h-screen items-end overflow-hidden px-6 pb-20 pt-28 md:px-20 md:pb-28 lg:px-32">
+        <motion.img
+          src={data.image}
+          alt={`${data.title.en} cinematic field`}
+          className="cinematic-image absolute inset-y-0 right-[-10vw] h-full w-[72vw] object-cover opacity-[0.18]"
+          initial={{scale: 1.02}}
+          animate={{scale: 1.12}}
+          transition={{duration: 22, repeat: Infinity, repeatType: 'mirror', ease: 'linear'}}
+        />
+        <div className="absolute inset-0 bg-white/45" />
+        <Reveal className="relative z-10">
           <DualText
             en={data.title.en}
             zh={data.title.zh}
-            enClassName="text-6xl md:text-[110px] font-black leading-[0.85] tracking-[-0.04em] uppercase"
-            zhClassName="text-2xl md:text-[40px] font-light opacity-60 tracking-normal mt-4 md:mt-8 block"
-            gap="gap-0"
-            className="mb-16"
+            enClassName="text-[58px] font-black uppercase leading-[0.9] tracking-[0.08em] md:text-[132px]"
+            zhClassName="text-[22px] tracking-[0.24em] md:text-[36px]"
           />
-        </FadeIn>
-        
-        <FadeIn delay={0.2} className="w-full relative aspect-video md:aspect-[21/9] overflow-hidden mb-24 border border-black/5 bg-[#fafafa]">
-          <img 
-            src={data.heroSrc} 
-            alt={`${data.title.en} Scene`} 
-            className="w-full h-full object-cover grayscale opacity-90 transition-transform duration-[2s] hover:scale-105"
+          <div className="mt-14 font-mono text-[13px] uppercase tracking-[0.38em] text-black/55">
+            {data.year}
+          </div>
+          <div className="mt-10 flex flex-wrap gap-x-8 gap-y-4 font-mono text-[10px] uppercase tracking-[0.32em] text-[#888888]">
+            {data.metadata.map((item) => (
+              <span key={item}>{item}</span>
+            ))}
+          </div>
+        </Reveal>
+      </section>
+
+      <section className="relative flex min-h-screen items-center px-6 py-36 md:px-20 lg:px-32">
+        <Reveal>
+          <DualText
+            en={data.concept.en}
+            zh={data.concept.zh}
+            enClassName="font-mono text-[28px] uppercase leading-[1.8] tracking-[0.28em] md:text-[54px]"
+            zhClassName="mt-8 max-w-[560px] text-[15px] leading-[2] tracking-[0.18em] md:text-[17px]"
           />
-        </FadeIn>
+        </Reveal>
+      </section>
 
-        <div className="flex flex-col md:flex-row gap-16 md:gap-32 pb-32">
-          <FadeIn delay={0.4} className="flex-[0.8]">
-            <DualText
-              en="CONCEPT"
-              zh="概念"
-              enClassName="text-[10px] font-mono text-[#888888] tracking-[0.2em] uppercase"
-              zhClassName="text-[10px] font-light opacity-60 tracking-normal mt-1 block"
-              className="mb-12 border-b border-black/10 pb-4"
-            />
-            <div className="font-mono text-[14px] md:text-[20px] tracking-[0.2em] uppercase leading-[2]">
-              <DualText
-                en={data.concept.en}
-                zh={data.concept.zh}
-                enClassName=""
-                zhClassName="font-light opacity-60 text-[0.7em] block mt-4 tracking-normal normal-case"
-              />
-            </div>
-            
-            <DualText
-              en={data.note.en}
-              zh={data.note.zh}
-              enClassName="text-[14px] font-medium tracking-normal normal-case leading-[1.8]"
-              zhClassName="font-light opacity-60 text-[13px] mt-2 block tracking-normal normal-case"
-              className="mt-16 text-black/80 font-sans"
-            />
-          </FadeIn>
+      <section className="relative flex min-h-screen items-center px-6 py-36 md:px-20 lg:px-32">
+        <Reveal>
+          <div className="font-mono text-[34px] uppercase leading-[2.2] tracking-[0.28em] md:text-[68px]">
+            {data.structure.map((line, index) => (
+              <motion.div
+                key={`${line}-${index}`}
+                whileHover={{x: index % 2 === 0 ? 18 : -18}}
+                transition={{duration: 0.7}}
+                className={index % 2 === 0 ? 'text-black' : 'text-black/45'}
+              >
+                {line}
+              </motion.div>
+            ))}
+          </div>
+        </Reveal>
+      </section>
 
-          {data.structure && (
-            <FadeIn delay={0.6} className="flex-1">
+      <section className="relative flex min-h-screen items-center px-6 py-36 md:px-20 lg:px-32">
+        <Reveal className="max-w-[760px]">
+          <DualText
+            en={data.statement.en}
+            zh={data.statement.zh}
+            enClassName="text-[34px] font-medium leading-[1.22] tracking-[0.04em] md:text-[64px]"
+            zhClassName="mt-7 max-w-[540px] text-[16px] leading-[2] tracking-[0.18em] md:text-[18px]"
+          />
+        </Reveal>
+      </section>
+
+      <section className="relative flex min-h-screen items-center px-6 py-32 md:px-20 lg:px-32">
+        <Reveal className="relative aspect-[16/10] w-full overflow-hidden bg-black/[0.03]">
+          <motion.img
+            src={data.image}
+            alt={`${data.title.en} archive image`}
+            className="cinematic-image h-full w-full object-cover"
+            whileHover={{scale: 1.04, x: 10}}
+            transition={{duration: 1.2, ease: [0.16, 1, 0.3, 1]}}
+          />
+          <div className="absolute inset-0 grain-overlay" />
+        </Reveal>
+      </section>
+
+      <section className="relative flex min-h-screen items-center px-6 py-36 md:px-20 lg:px-32">
+        <div className="max-w-[720px] space-y-24">
+          {data.notes.map((note, index) => (
+            <Reveal key={String(note.en)} delay={index * 0.12}>
               <DualText
-                en="STRUCTURE DIAGRAM"
-                zh="结构图"
-                enClassName="text-[10px] font-mono text-[#888888] tracking-[0.2em] uppercase"
-                zhClassName="text-[10px] font-light opacity-60 tracking-normal mt-1 block"
-                className="mb-12 border-b border-black/10 pb-4"
+                en={note.en}
+                zh={note.zh}
+                enClassName="text-[22px] font-medium leading-[1.5] tracking-[0.08em] md:text-[34px]"
+                zhClassName="mt-4 max-w-[520px] text-[14px] leading-[2] tracking-[0.18em]"
               />
-              <div className="flex flex-col space-y-6 font-mono tracking-[0.2em] text-[14px] md:text-[20px]">
-                {data.structure.map((item: any, idx: number) => (
-                  <motion.div key={idx} whileHover={{ x: 10 }} className={`${item.style} cursor-crosshair flex items-center gap-4`}><span className="text-[10px] text-[#888]">{item.num}</span> {item.en}</motion.div>
-                ))}
-              </div>
-            </FadeIn>
-          )}
+            </Reveal>
+          ))}
         </div>
       </section>
 
-    </motion.div>
+      <section className="relative min-h-[70vh] px-6 py-36 md:px-20 lg:px-32">
+        <Reveal>
+          <Link
+            to="/"
+            className="font-mono text-[10px] uppercase tracking-[0.36em] text-[#888888] transition-colors hover:text-black"
+          >
+            END OF RECORD / RETURN
+          </Link>
+        </Reveal>
+      </section>
+    </PageFade>
   );
 };
 
