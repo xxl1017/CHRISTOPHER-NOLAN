@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { BrowserRouter, Routes, Route, Link, useParams, useLocation } from 'react-router-dom';
+import { HashRouter, Routes, Route, Link, useParams, useLocation } from 'react-router-dom';
 
 function AudioPlayer() {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -339,84 +339,6 @@ function Home() {
   );
 }
 
-const FilmItem: React.FC<{ item: any; index: number }> = ({ item, index }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  
-  return (
-    <div className="border-b border-black/10 cursor-pointer group relative" onClick={() => setIsOpen(!isOpen)}>
-      <div className="px-8 md:px-[165px] py-8 md:py-12 flex justify-between items-center hover:bg-black/[0.02] transition-colors">
-        <div className="flex flex-col md:flex-row md:items-baseline gap-4 md:gap-16 w-full">
-          <span className="font-mono text-[11px] text-[#888888] md:w-16 block shrink-0">{item.year}</span>
-          <h3 className="text-2xl md:text-[32px] font-bold uppercase tracking-[0.05em] text-black relative pl-4 md:pl-0 md:before:hidden before:absolute before:left-0 before:top-1 before:bottom-1 before:w-[2px] before:bg-black">
-            <DualText
-              en={item.title.en}
-              zh={item.title.zh}
-              enClassName="font-bold tracking-[0.05em]"
-              zhClassName="font-light opacity-60 text-[0.6em] tracking-normal mt-1 block"
-            />
-          </h3>
-        </div>
-        <div className="font-mono text-[10px] text-[#888] transition-transform duration-500 hidden md:block shrink-0">
-          <motion.div animate={{ rotate: isOpen ? 45 : 0 }}>[ + ]</motion.div>
-        </div>
-      </div>
-      
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden bg-[#fafafa]"
-          >
-            <div className="px-8 md:px-[165px] pt-8 pb-16 grid grid-cols-1 md:grid-cols-3 gap-12 font-mono text-[10px] tracking-[0.1em] text-[#888888] border-t border-black/5">
-              <div>
-                <h4 className="text-black font-bold mb-6">KEYWORDS</h4>
-                <ul className="space-y-4">
-                  {item.details.keywords.map((k: any, i: number) => (
-                    <li key={i}>
-                      <DualText
-                        en={`— ${k.en}`}
-                        zh={k.zh}
-                        enClassName=""
-                        zhClassName="font-light opacity-60 tracking-normal normal-case block ml-4 mt-1"
-                      />
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h4 className="text-black font-bold mb-6">STRUCTURE</h4>
-                <ul className="space-y-3">
-                  {item.details.structure.map((s: string) => <li key={s} className="uppercase">— {s}</li>)}
-                </ul>
-              </div>
-              <div className="md:border-l md:border-black/10 md:pl-12 flex flex-col justify-between">
-                <div>
-                  <h4 className="text-black font-bold mb-6">OBSERVATION</h4>
-                  <div className="leading-[2] font-sans tracking-normal text-[13px] text-black/80">
-                    <DualText
-                      en={item.details.note.en}
-                      zh={item.details.note.zh}
-                      enClassName="font-medium"
-                      zhClassName="font-light opacity-60 text-[0.85em] mt-1 block tracking-normal normal-case"
-                    />
-                  </div>
-                </div>
-                <div className="mt-8">
-                  <Link to={`/film/${item.title.en.toLowerCase()}`} className="text-black border-b border-black pb-1 hover:text-[#888] hover:border-[#888] transition-colors inline-block tracking-[0.2em] font-bold">
-                    EXPLORE ARCHIVE →
-                  </Link>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
-
 const filmPagesData: Record<string, any> = {
   inception: {
     title: { en: "INCEPTION", zh: "盗梦空间" },
@@ -570,12 +492,12 @@ const FilmPage = () => {
 
 export default function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <AudioPlayer />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/film/:title" element={<FilmPage />} />
       </Routes>
-    </BrowserRouter>
+    </HashRouter>
   );
 }

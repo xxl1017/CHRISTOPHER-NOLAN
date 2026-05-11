@@ -1,20 +1,79 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Christopher Nolan Archive
 
-# Run and deploy your AI Studio app
+An experimental React portfolio that presents Christopher Nolan's films as a minimalist cinematic archive. The interface uses black-and-white imagery, typographic grids, subtle motion, and bilingual labels to explore themes of time, memory, inversion, and structure.
 
-This contains everything you need to run your app locally.
+## Tech Stack
 
-View your app in AI Studio: https://ai.studio/apps/332387e1-4593-4a79-99b2-a3c6f1fab288
+- React 19
+- TypeScript
+- Vite
+- Tailwind CSS v4
+- Motion
+- React Router
 
-## Run Locally
+## Project Structure
 
-**Prerequisites:**  Node.js
+```text
+public/
+  memento.jpg
+  tenet.jpg
+src/
+  App.tsx      Main routes, pages, archive data, and audio player
+  index.css    Tailwind import, theme tokens, grid, and texture styles
+  main.tsx     React entry point
+```
 
+## Routes
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+- `/#/` - Home archive page
+- `/#/film/following`
+- `/#/film/memento`
+- `/#/film/inception`
+- `/#/film/interstellar`
+- `/#/film/tenet`
+
+The app uses `HashRouter` so deep links work on static hosting without server-side rewrite rules.
+
+## Local Development
+
+Install dependencies:
+
+```bash
+npm install
+```
+
+Start the dev server:
+
+```bash
+npm run dev
+```
+
+Build for production:
+
+```bash
+npm run build
+```
+
+Preview the production build:
+
+```bash
+npm run preview
+```
+
+Run TypeScript checks:
+
+```bash
+npm run lint
+```
+
+Clean the build output:
+
+```bash
+npm run clean
+```
+
+## Notes
+
+- The app currently depends on several external media URLs from Unsplash and Suno, so a network connection is required for the complete visual and audio experience.
+- `public/memento.jpg` and `public/tenet.jpg` are local assets used by both archive cards and detail pages.
+- No Gemini API key or backend server is required.
