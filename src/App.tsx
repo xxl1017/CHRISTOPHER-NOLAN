@@ -3,13 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, {useEffect, useRef, useState} from 'react';
-import {AnimatePresence, motion} from 'motion/react';
-import {HashRouter, Link, Route, Routes, useLocation, useParams} from 'react-router-dom';
+import React, {useEffect, useMemo, useState} from 'react';
+import {HashRouter, Link, Route, Routes, useLocation, useNavigate, useParams} from 'react-router-dom';
 
 type DualCopy = {
-  en: React.ReactNode;
-  zh: React.ReactNode;
+  en: string;
+  zh: string;
 };
 
 type FilmRecord = {
@@ -24,9 +23,6 @@ type FilmRecord = {
   statement: DualCopy;
   notes: DualCopy[];
 };
-
-const nolanPortrait =
-  'https://commons.wikimedia.org/wiki/Special:Redirect/file/Christopher%20Nolan%20at%20WonderCon%202010%203.JPG?width=1400';
 
 const films: FilmRecord[] = [
   {
@@ -56,7 +52,7 @@ const films: FilmRecord[] = [
     image: '/memento.jpg',
     keywords: ['MEMORY', 'TIME', 'IDENTITY'],
     concept: {en: 'MEMORY / REVERSE TIME', zh: '意识被剪成无法复原的证词'},
-    structure: ['← ← ← ← ←', '→ → → → →'],
+    structure: ['LEFT TO RIGHT', 'RIGHT TO LEFT', 'BLACK AND WHITE', 'COLOR'],
     statement: {
       en: 'Memory is unreliable.',
       zh: '记忆会被不断重构。',
@@ -75,7 +71,7 @@ const films: FilmRecord[] = [
       'https://images.unsplash.com/photo-1449844908441-8829872d2607?q=80&w=1600&auto=format&fit=crop&grayscale=true',
     keywords: ['DREAM', 'LAYER', 'KICK'],
     concept: {en: 'DREAM WITHIN DREAM', zh: '层层嵌套的意识迷宫'},
-    structure: ['LEVEL 01', '  LEVEL 02', '    LEVEL 03', '      LIMBO'],
+    structure: ['LEVEL 01', 'LEVEL 02', 'LEVEL 03', 'LIMBO'],
     statement: {
       en: 'Reality is negotiated through architecture.',
       zh: '真实不是答案，而是一套暂时稳定的空间规则。',
@@ -112,7 +108,7 @@ const films: FilmRecord[] = [
     image: '/tenet.jpg',
     keywords: ['INVERSION', 'ENTROPY', 'CONTROL'],
     concept: {en: 'INVERSION / ENTROPY', zh: '因果被折叠成互相追逐的轨道'},
-    structure: ['→ → → → →', '← ← ← ← ←'],
+    structure: ['FORWARD EVENT', 'INVERTED EVENT', 'SATOR SQUARE', 'TEMPORAL PINCER'],
     statement: {
       en: 'The future has already happened.',
       zh: '未来不是等待，而是正在反向接近。',
@@ -129,309 +125,170 @@ const filmMap = films.reduce<Record<string, FilmRecord>>((map, film) => {
   return map;
 }, {});
 
-function AudioPlayer() {
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
+const categories = Array.from(new Set(films.flatMap((film) => film.metadata)));
+
+function Nav() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const goToSection = (sectionId: string) => {
+    const scroll = () => document.getElementById(sectionId)?.scrollIntoView({behavior: 'smooth', block: 'start'});
+
+    if (location.pathname === '/') {
+      scroll();
+      return;
+    }
+
+    navigate('/');
+    window.setTimeout(scroll, 0);
+  };
 
   return (
-    <>
-      <audio
-        ref={audioRef}
-        loop
-        src="https://cdn1.suno.ai/ed3573c5-bf5d-4ab9-8f59-2f7065eca900.mp3"
-        crossOrigin="anonymous"
-      />
-      <button
-        type="button"
-        className="fixed bottom-8 right-6 z-50 font-mono text-[10px] uppercase tracking-[0.28em] text-black/45 transition-colors hover:text-black md:bottom-12 md:right-12"
-        onClick={() => {
-          if (!audioRef.current) return;
-          if (isPlaying) {
-            audioRef.current.pause();
-            setIsPlaying(false);
-            return;
-          }
-
-          audioRef.current
-            .play()
-            .then(() => setIsPlaying(true))
-            .catch(() => setIsPlaying(false));
-        }}
-      >
-        {isPlaying ? '[ AUDIO ON ]' : '[ AUDIO OFF ]'}
-      </button>
-    </>
+    <header className="site-header" id="top">
+      <Link to="/" className="brand-link" aria-label="Christopher Nolan Archive home">
+        C.N
+      </Link>
+      <nav className="main-nav" aria-label="Primary navigation">
+        <button type="button" onClick={() => goToSection('works')}>
+          Works
+        </button>
+        <button type="button" onClick={() => goToSection('preview')}>
+          Preview
+        </button>
+        <button type="button" onClick={() => goToSection('information')}>
+          Information
+        </button>
+        <button type="button" onClick={() => goToSection('contact')}>
+          Contact
+        </button>
+      </nav>
+    </header>
   );
 }
 
-const PageFade: React.FC<{children: React.ReactNode; className?: string}> = ({children, className = ''}) => (
-  <motion.div
-    initial={{opacity: 0}}
-    animate={{opacity: 1}}
-    exit={{opacity: 0}}
-    transition={{duration: 0.8, ease: [0.16, 1, 0.3, 1]}}
-    className={className}
-  >
-    {children}
-  </motion.div>
-);
-
-const Reveal: React.FC<{children: React.ReactNode; delay?: number; className?: string}> = ({
-  children,
-  delay = 0,
-  className = '',
-}) => (
-  <motion.div
-    initial={{opacity: 0, y: 36}}
-    whileInView={{opacity: 1, y: 0}}
-    viewport={{once: true, margin: '-18%'}}
-    transition={{duration: 1.1, delay, ease: [0.16, 1, 0.3, 1]}}
-    className={className}
-  >
-    {children}
-  </motion.div>
-);
-
-const DualText: React.FC<{
-  en: React.ReactNode;
-  zh: React.ReactNode;
-  className?: string;
-  enClassName?: string;
-  zhClassName?: string;
-}> = ({en, zh, className = '', enClassName = '', zhClassName = ''}) => (
-  <div className={`flex flex-col gap-3 ${className}`}>
-    <span className={enClassName}>{en}</span>
-    <span className={`font-zh font-light text-black/45 ${zhClassName}`}>{zh}</span>
-  </div>
-);
+function DualLine({en, zh, className = ''}: DualCopy & {className?: string}) {
+  return (
+    <div className={`dual-line ${className}`}>
+      <p>{en}</p>
+      <p>{zh}</p>
+    </div>
+  );
+}
 
 function Home() {
-  const [activeFilm, setActiveFilm] = useState<FilmRecord>(films[1]);
+  const [activeId, setActiveId] = useState(films[1].id);
+  const activeFilm = useMemo(() => filmMap[activeId] ?? films[0], [activeId]);
 
   return (
-    <PageFade className="relative min-h-screen overflow-hidden bg-white text-black selection:bg-black selection:text-white">
-      <div className="fixed inset-0 pointer-events-none bg-grid opacity-70" />
-      <div className="fixed inset-0 pointer-events-none grain-overlay" />
-      <div className="fixed left-6 top-6 z-40 hidden font-mono text-[10px] uppercase tracking-[0.32em] text-black/45 md:block">
-        CN / ARCHIVE SYSTEM
-      </div>
-      <div className="fixed right-6 top-6 z-40 hidden font-mono text-[10px] uppercase tracking-[0.32em] text-black/45 md:block">
-        1970 / LONDON
-      </div>
+    <main>
+      <Nav />
 
-      <section className="relative min-h-screen overflow-hidden px-6 pb-20 pt-24 md:px-20 lg:px-32">
-        <div className="absolute bottom-0 right-[-14vw] top-0 w-[68vw] overflow-hidden opacity-20 md:opacity-[0.18]">
-          <motion.img
-            src={nolanPortrait}
-            alt="Christopher Nolan"
-            className="h-full w-full object-cover object-[42%_50%] grayscale blur-[0.7px] contrast-75"
-            initial={{scale: 1.04, x: 0}}
-            animate={{scale: 1.16, x: -18}}
-            transition={{duration: 24, repeat: Infinity, repeatType: 'mirror', ease: 'linear'}}
-          />
-          <div className="absolute inset-0 bg-white/20" />
-        </div>
-
-        <div className="relative z-10 flex min-h-[calc(100vh-11rem)] max-w-[980px] flex-col justify-end">
-          <Reveal>
-            <DualText
-              en="CHRISTOPHER NOLAN"
-              zh="克里斯托弗·诺兰"
-              enClassName="text-[52px] font-black uppercase leading-[0.9] tracking-[0.06em] md:text-[118px]"
-              zhClassName="text-[22px] tracking-[0.24em] md:text-[34px]"
-            />
-          </Reveal>
-          <Reveal delay={0.24} className="mt-16">
-            <DualText
-              en="TIME IS NOT LINEAR"
-              zh="时间并非线性"
-              enClassName="font-mono text-[12px] uppercase tracking-[0.36em] text-black/55"
-              zhClassName="text-[13px] tracking-[0.22em]"
-            />
-          </Reveal>
-          <Reveal delay={0.48} className="mt-28">
-            <DualText
-              en="SCROLL TO ENTER"
-              zh="向下进入系统"
-              enClassName="font-mono text-[10px] uppercase tracking-[0.4em]"
-              zhClassName="text-[12px] tracking-[0.24em]"
-            />
-          </Reveal>
+      <section className="home-cover" aria-labelledby="site-title">
+        <div className="cover-mark">C.N</div>
+        <div className="cover-copy">
+          <h1 id="site-title">Christopher Nolan Archive</h1>
+          <p>
+            A typographic research index for cinematic structures, nonlinear time, memory systems, and the
+            physical behavior of narrative.
+          </p>
         </div>
       </section>
 
-      <section className="relative min-h-screen px-6 py-32 md:px-20 lg:px-32">
-        <div className="pointer-events-none absolute inset-x-0 top-20 overflow-hidden">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={activeFilm.id}
-              initial={{opacity: 0, y: 20}}
-              animate={{opacity: 1, y: 0}}
-              exit={{opacity: 0, y: -20}}
-              transition={{duration: 0.8}}
-              className="font-mono text-[56px] uppercase leading-none tracking-[0.22em] text-black/[0.035] md:text-[120px]"
+      <section className="works-section" id="works" aria-labelledby="works-title">
+        <div className="section-kicker">
+          <h2 id="works-title">Works</h2>
+          <span>Selected Film Structures</span>
+        </div>
+
+        <div className="work-list">
+          {films.map((film) => (
+            <article
+              className="work-row"
+              key={film.id}
+              onMouseEnter={() => setActiveId(film.id)}
+              onFocus={() => setActiveId(film.id)}
             >
-              {activeFilm.keywords.join(' / ')}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-
-        <Reveal>
-          <DualText
-            en="01 / ARCHIVE"
-            zh="机密影像记录"
-            enClassName="font-mono text-[10px] uppercase tracking-[0.36em] text-[#888888]"
-            zhClassName="text-[11px] tracking-[0.2em]"
-          />
-        </Reveal>
-
-        <div className="relative z-10 mt-28 grid gap-20 md:grid-cols-[minmax(0,0.95fr)_minmax(320px,0.75fr)] md:items-center">
-          <div className="space-y-10 md:space-y-14">
-            {films.map((film, index) => {
-              const isActive = activeFilm.id === film.id;
-              return (
-                <Reveal key={film.id} delay={index * 0.04}>
-                  <Link
-                    to={`/film/${film.id}`}
-                    onMouseEnter={() => setActiveFilm(film)}
-                    onFocus={() => setActiveFilm(film)}
-                    className={`group block transition-all duration-700 ${
-                      isActive ? 'translate-x-3 opacity-100' : 'opacity-35 hover:opacity-80'
-                    }`}
-                  >
-                    <div className="flex items-start gap-6">
-                      <span className="pt-2 font-mono text-[10px] tracking-[0.34em] text-[#888888]">
-                        {String(index + 1).padStart(2, '0')}
-                      </span>
-                      <div>
-                        <DualText
-                          en={film.title.en}
-                          zh={film.title.zh}
-                          enClassName="text-[32px] font-black uppercase tracking-[0.12em] md:text-[58px]"
-                          zhClassName="text-[14px] tracking-[0.24em] md:text-[16px]"
-                        />
-                        <div
-                          className={`mt-7 flex flex-wrap gap-x-7 gap-y-3 font-mono text-[10px] uppercase tracking-[0.32em] text-black/45 transition-opacity duration-500 ${
-                            isActive ? 'opacity-100' : 'opacity-0'
-                          }`}
-                        >
-                          {film.keywords.map((keyword) => (
-                            <span key={keyword}>{keyword}</span>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  </Link>
-                </Reveal>
-              );
-            })}
-          </div>
-
-          <Reveal className="relative aspect-[4/5] overflow-hidden bg-black/[0.03]">
-            <AnimatePresence mode="wait">
-              <motion.img
-                key={activeFilm.id}
-                src={activeFilm.image}
-                alt={`${activeFilm.title.en} archive preview`}
-                className="cinematic-image absolute inset-0 h-full w-full object-cover"
-                initial={{opacity: 0, scale: 1.03, x: 16}}
-                animate={{opacity: 0.82, scale: 1.09, x: 0}}
-                exit={{opacity: 0, scale: 1.02, x: -16}}
-                transition={{duration: 0.9, ease: [0.16, 1, 0.3, 1]}}
-              />
-            </AnimatePresence>
-            <div className="absolute inset-0 grain-overlay" />
-            <div className="absolute bottom-8 left-8 font-mono text-[10px] uppercase tracking-[0.32em] text-white/70 mix-blend-difference">
-              {activeFilm.year} / {activeFilm.metadata[0]}
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
-      <StructureLab />
-      <ProjectStatement />
-    </PageFade>
-  );
-}
-
-function StructureLab() {
-  return (
-    <section className="relative min-h-screen px-6 py-36 md:px-20 lg:px-32">
-      <Reveal>
-        <DualText
-          en="02 / STRUCTURE LAB"
-          zh="结构实验室"
-          enClassName="font-mono text-[10px] uppercase tracking-[0.36em] text-[#888888]"
-          zhClassName="text-[11px] tracking-[0.2em]"
-        />
-      </Reveal>
-
-      <div className="mt-32 max-w-[760px] space-y-32 font-mono uppercase tracking-[0.28em]">
-        <Reveal>
-          <div className="border-t border-black/15 pt-10">
-            <p className="mb-10 text-[12px] text-[#888888]">TENET</p>
-            <p className="text-[22px] leading-[2] md:text-[34px]">→ → → → →</p>
-            <p className="text-[22px] leading-[2] text-black/45 md:text-[34px]">← ← ← ← ←</p>
-          </div>
-        </Reveal>
-
-        <Reveal>
-          <div className="border-t border-black/15 pt-10">
-            <p className="mb-10 text-[12px] text-[#888888]">DUNKIRK</p>
-            <div className="space-y-5 text-[18px] md:text-[26px]">
-              <p>1 WEEK</p>
-              <p className="text-black/55">1 DAY</p>
-              <p className="text-black/25">1 HOUR</p>
-            </div>
-          </div>
-        </Reveal>
-
-        <Reveal>
-          <div className="border-t border-black/15 pt-10">
-            <p className="mb-10 text-[12px] text-[#888888]">INTERSTELLAR</p>
-            <p className="text-[22px] leading-[1.7] md:text-[34px]">TIME = GRAVITY</p>
-          </div>
-        </Reveal>
-      </div>
-    </section>
-  );
-}
-
-function ProjectStatement() {
-  return (
-    <section className="relative flex min-h-screen items-center px-6 py-36 md:px-20 lg:px-32">
-      <Reveal className="max-w-[780px]">
-        <DualText
-          en="03 / PROJECT"
-          zh="项目说明"
-          enClassName="mb-24 font-mono text-[10px] uppercase tracking-[0.36em] text-[#888888]"
-          zhClassName="hidden"
-        />
-        <div className="space-y-12">
-          {[
-            {
-              en: 'This project explores how cinematic structure can become digital interaction.',
-              zh: '电影结构在这里不再只是内容，而成为浏览方式本身。',
-            },
-            {en: 'Scroll becomes time.', zh: '滚动成为时间。'},
-            {en: 'Layout becomes narrative.', zh: '版式成为叙事。'},
-            {en: 'Interaction becomes perception.', zh: '交互成为感知。'},
-          ].map((line) => (
-            <DualText
-              key={String(line.en)}
-              en={line.en}
-              zh={line.zh}
-              enClassName="max-w-[720px] text-[28px] font-medium leading-[1.25] tracking-[0.04em] md:text-[48px]"
-              zhClassName="max-w-[520px] text-[15px] leading-[1.9] tracking-[0.18em]"
-            />
+              <Link to={`/film/${film.id}`} className="work-title">
+                <span>{film.title.en}</span>
+                <span>{film.title.zh}</span>
+              </Link>
+              <p className="work-description">{film.statement.en}</p>
+              <div className="work-meta">
+                <span>{film.year}</span>
+                <span>{film.metadata.join(' / ')}</span>
+              </div>
+              <Link to={`/film/${film.id}`} className="text-link">
+                See More
+              </Link>
+            </article>
           ))}
         </div>
-      </Reveal>
-    </section>
+      </section>
+
+      <section className="preview-section" id="preview" aria-labelledby="preview-title">
+        <div className="section-kicker">
+          <h2 id="preview-title">Preview</h2>
+          <span>{activeFilm.title.en}</span>
+        </div>
+        <div className="preview-grid">
+          <figure className="preview-image">
+            <img src={activeFilm.image} alt={`${activeFilm.title.en} preview`} />
+          </figure>
+          <div className="preview-copy">
+            <DualLine en={activeFilm.concept.en} zh={activeFilm.concept.zh} />
+            <ul>
+              {activeFilm.keywords.map((keyword) => (
+                <li key={keyword}>{keyword}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section className="info-section" id="information" aria-labelledby="information-title">
+        <div className="section-kicker">
+          <h2 id="information-title">Information</h2>
+          <span>Design Method</span>
+        </div>
+        <div className="info-copy">
+          <p>
+            This archive treats filmography as a graphic design system. Titles, dates, categories, and short
+            analytical fragments are arranged as documents rather than posters, allowing the structure of each film
+            to become the interface.
+          </p>
+          <p>
+            The redesign references research-office portfolios: plain navigation, typographic hierarchy, long-form
+            project indexing, visible metadata, and restrained black-and-white material.
+          </p>
+        </div>
+        <div className="category-grid" aria-label="Archive categories">
+          {categories.map((category) => (
+            <span key={category}>{category}</span>
+          ))}
+        </div>
+      </section>
+
+      <section className="contact-section" id="contact" aria-labelledby="contact-title">
+        <div className="section-kicker">
+          <h2 id="contact-title">Contact</h2>
+          <span>Archive Note</span>
+        </div>
+        <p>
+          C.N Archive. A study page for nonlinear cinema, typographic records, and structural reading.
+        </p>
+        <button
+          type="button"
+          className="text-link inline-action"
+          onClick={() => document.getElementById('top')?.scrollIntoView({behavior: 'smooth', block: 'start'})}
+        >
+          Back To Top
+        </button>
+      </section>
+    </main>
   );
 }
 
-const FilmPage = () => {
+function FilmPage() {
   const {title} = useParams<{title: string}>();
   const {pathname} = useLocation();
   const data = title ? filmMap[title] : null;
@@ -442,138 +299,79 @@ const FilmPage = () => {
 
   if (!data) {
     return (
-      <PageFade className="flex min-h-screen items-center justify-center bg-white font-mono text-[10px] uppercase tracking-[0.36em] text-[#888888]">
-        <Link to="/" className="border-b border-black/20 pb-2 transition-colors hover:text-black">
-          ← RETURN TO ARCHIVE
-        </Link>
-      </PageFade>
+      <main>
+        <Nav />
+        <section className="not-found">
+          <p>Record not found.</p>
+          <Link to="/" className="text-link">
+            Return To Archive
+          </Link>
+        </section>
+      </main>
     );
   }
 
   return (
-    <PageFade className="relative min-h-screen overflow-hidden bg-white text-black selection:bg-black selection:text-white">
-      <div className="fixed inset-0 pointer-events-none bg-grid opacity-70" />
-      <div className="fixed inset-0 pointer-events-none grain-overlay" />
-      <Link
-        to="/"
-        className="fixed left-6 top-6 z-50 font-mono text-[10px] uppercase tracking-[0.36em] text-black/55 transition-colors hover:text-black md:left-10 md:top-10"
-      >
-        ← BACK
-      </Link>
-
-      <section className="relative flex min-h-screen items-end overflow-hidden px-6 pb-20 pt-28 md:px-20 md:pb-28 lg:px-32">
-        <motion.img
-          src={data.image}
-          alt={`${data.title.en} cinematic field`}
-          className="cinematic-image absolute inset-y-0 right-[-10vw] h-full w-[72vw] object-cover opacity-[0.18]"
-          initial={{scale: 1.02}}
-          animate={{scale: 1.12}}
-          transition={{duration: 22, repeat: Infinity, repeatType: 'mirror', ease: 'linear'}}
-        />
-        <div className="absolute inset-0 bg-white/45" />
-        <Reveal className="relative z-10">
-          <DualText
-            en={data.title.en}
-            zh={data.title.zh}
-            enClassName="text-[58px] font-black uppercase leading-[0.9] tracking-[0.08em] md:text-[132px]"
-            zhClassName="text-[22px] tracking-[0.24em] md:text-[36px]"
-          />
-          <div className="mt-14 font-mono text-[13px] uppercase tracking-[0.38em] text-black/55">
-            {data.year}
+    <main>
+      <Nav />
+      <article className="project-page">
+        <header className="project-hero">
+          <div>
+            <p className="project-index">{data.year}</p>
+            <h1>{data.title.en}</h1>
+            <p className="project-zh">{data.title.zh}</p>
           </div>
-          <div className="mt-10 flex flex-wrap gap-x-8 gap-y-4 font-mono text-[10px] uppercase tracking-[0.32em] text-[#888888]">
-            {data.metadata.map((item) => (
-              <span key={item}>{item}</span>
-            ))}
-          </div>
-        </Reveal>
-      </section>
-
-      <section className="relative flex min-h-screen items-center px-6 py-36 md:px-20 lg:px-32">
-        <Reveal>
-          <DualText
-            en={data.concept.en}
-            zh={data.concept.zh}
-            enClassName="font-mono text-[28px] uppercase leading-[1.8] tracking-[0.28em] md:text-[54px]"
-            zhClassName="mt-8 max-w-[560px] text-[15px] leading-[2] tracking-[0.18em] md:text-[17px]"
-          />
-        </Reveal>
-      </section>
-
-      <section className="relative flex min-h-screen items-center px-6 py-36 md:px-20 lg:px-32">
-        <Reveal>
-          <div className="font-mono text-[34px] uppercase leading-[2.2] tracking-[0.28em] md:text-[68px]">
-            {data.structure.map((line, index) => (
-              <motion.div
-                key={`${line}-${index}`}
-                whileHover={{x: index % 2 === 0 ? 18 : -18}}
-                transition={{duration: 0.7}}
-                className={index % 2 === 0 ? 'text-black' : 'text-black/45'}
-              >
-                {line}
-              </motion.div>
-            ))}
-          </div>
-        </Reveal>
-      </section>
-
-      <section className="relative flex min-h-screen items-center px-6 py-36 md:px-20 lg:px-32">
-        <Reveal className="max-w-[760px]">
-          <DualText
-            en={data.statement.en}
-            zh={data.statement.zh}
-            enClassName="text-[34px] font-medium leading-[1.22] tracking-[0.04em] md:text-[64px]"
-            zhClassName="mt-7 max-w-[540px] text-[16px] leading-[2] tracking-[0.18em] md:text-[18px]"
-          />
-        </Reveal>
-      </section>
-
-      <section className="relative flex min-h-screen items-center px-6 py-32 md:px-20 lg:px-32">
-        <Reveal className="relative aspect-[16/10] w-full overflow-hidden bg-black/[0.03]">
-          <motion.img
-            src={data.image}
-            alt={`${data.title.en} archive image`}
-            className="cinematic-image h-full w-full object-cover"
-            whileHover={{scale: 1.04, x: 10}}
-            transition={{duration: 1.2, ease: [0.16, 1, 0.3, 1]}}
-          />
-          <div className="absolute inset-0 grain-overlay" />
-        </Reveal>
-      </section>
-
-      <section className="relative flex min-h-screen items-center px-6 py-36 md:px-20 lg:px-32">
-        <div className="max-w-[720px] space-y-24">
-          {data.notes.map((note, index) => (
-            <Reveal key={String(note.en)} delay={index * 0.12}>
-              <DualText
-                en={note.en}
-                zh={note.zh}
-                enClassName="text-[22px] font-medium leading-[1.5] tracking-[0.08em] md:text-[34px]"
-                zhClassName="mt-4 max-w-[520px] text-[14px] leading-[2] tracking-[0.18em]"
-              />
-            </Reveal>
-          ))}
-        </div>
-      </section>
-
-      <section className="relative min-h-[70vh] px-6 py-36 md:px-20 lg:px-32">
-        <Reveal>
-          <Link
-            to="/"
-            className="font-mono text-[10px] uppercase tracking-[0.36em] text-[#888888] transition-colors hover:text-black"
-          >
-            END OF RECORD / RETURN
+          <Link to="/" className="text-link">
+            Back
           </Link>
-        </Reveal>
-      </section>
-    </PageFade>
+        </header>
+
+        <figure className="project-image">
+          <img src={data.image} alt={`${data.title.en} archive material`} />
+        </figure>
+
+        <section className="project-section">
+          <h2>Concept</h2>
+          <DualLine en={data.concept.en} zh={data.concept.zh} />
+        </section>
+
+        <section className="project-section">
+          <h2>Structure</h2>
+          <ol className="structure-list">
+            {data.structure.map((item) => (
+              <li key={item}>{item}</li>
+            ))}
+          </ol>
+        </section>
+
+        <section className="project-section">
+          <h2>Statement</h2>
+          <DualLine en={data.statement.en} zh={data.statement.zh} />
+        </section>
+
+        <section className="project-section">
+          <h2>Notes</h2>
+          <div className="note-list">
+            {data.notes.map((note) => (
+              <DualLine key={note.en} en={note.en} zh={note.zh} />
+            ))}
+          </div>
+        </section>
+
+        <footer className="project-footer">
+          <span>{data.metadata.join(' / ')}</span>
+          <Link to="/" className="text-link">
+            End Of Record / Return
+          </Link>
+        </footer>
+      </article>
+    </main>
   );
-};
+}
 
 export default function App() {
   return (
     <HashRouter>
-      <AudioPlayer />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/film/:title" element={<FilmPage />} />
